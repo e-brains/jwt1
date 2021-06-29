@@ -1,14 +1,18 @@
 package com.kye.jwt1.config;
 
 import com.kye.jwt1.filter.JwtAuthenticationFilter;
+import com.kye.jwt1.filter.JwtAuthorizationFilter;
 import com.kye.jwt1.filter.MyFilter1;
 import com.kye.jwt1.filter.MyFilter2;
+import com.kye.jwt1.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.security.web.context.SecurityContextPersistenceFilter;
 import org.springframework.web.filter.CorsFilter;
@@ -19,6 +23,12 @@ import org.springframework.web.filter.CorsFilter;
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     private final CorsFilter corsFilter;
+    private final UserRepository userRepository;
+
+    @Bean
+    public BCryptPasswordEncoder passwordEncoder(){
+        return new BCryptPasswordEncoder();
+    };
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
@@ -31,6 +41,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .formLogin().disable()  // JWT를 쓰기 때문에 폼 로그인을 안쓴다.
                 .httpBasic().disable()  // JWT를 쓰기 때문에 기본적인 http 방식의 로그인을 안쓴다.
                 .addFilter(new JwtAuthenticationFilter(authenticationManager()))  // AuthenticationManager를 파라미터로 넘겨야 하는데 이 객체는 WebSecurityConfigurerAdapter 가 가지고 있다.
+                .addFilter(new JwtAuthorizationFilter(authenticationManager(), userRepository))  // JWT토큰이 유효한지 판단하는 필터
                 .authorizeRequests()
                 .antMatchers("/api/v1/user/**") // 권한이 user, manager, admin 인 사람 접근 가능
                 .access("hasRole('ROLE_USER') or hasRole('ROLE_MANAGER') or hasRole('ROLE_ADMIN')")
